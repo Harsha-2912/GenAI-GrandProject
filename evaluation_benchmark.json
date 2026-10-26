@@ -1,0 +1,102 @@
+[
+  {
+    "id": "EVAL-01",
+    "category": "Academic Policy (PDF)",
+    "question": "What is the mandatory minimum attendance percentage required to sit for the end-semester examinations?",
+    "is_answerable": true,
+    "expected_document": "Academic_Regulations_Handbook_2024.pdf",
+    "expected_section": "Page 2",
+    "expected_key_facts": ["75%", "minimum attendance", "End-Semester"],
+    "notes": "Must cite Academic_Regulations_Handbook_2024.pdf Page 2."
+  },
+  {
+    "id": "EVAL-02",
+    "category": "Examination Schedule (TXT)",
+    "question": "What is the deadline for students to clear all semester tuition and examination fees for Fall 2024?",
+    "is_answerable": true,
+    "expected_document": "Examination_Notice_Fall2024.txt",
+    "expected_section": "Full Document",
+    "expected_key_facts": ["November 5, 2024", "dues", "Hall Tickets"],
+    "notes": "Must cite Examination_Notice_Fall2024.txt."
+  },
+  {
+    "id": "EVAL-03",
+    "category": "Campus Facilities (PPTX)",
+    "question": "What are the operating hours for the Central Library on weekends?",
+    "is_answerable": true,
+    "expected_document": "Campus_Facilities_and_Hostel_Guide.pptx",
+    "expected_section": "Slide 2",
+    "expected_key_facts": ["09:00 AM to 06:00 PM", "Saturday", "Sunday"],
+    "notes": "Must cite Campus_Facilities_and_Hostel_Guide.pptx Slide 2."
+  },
+  {
+    "id": "EVAL-04",
+    "category": "Attendance & Condonation (Excel)",
+    "question": "What is the condonation fine amount in INR for attendance shortage between 65% and 74%?",
+    "is_answerable": true,
+    "expected_document": "Attendance_and_Grading_Matrix.xlsx",
+    "expected_section": "Sheet: Attendance_Rules",
+    "expected_key_facts": ["500", "Medical Certificate", "Condonation"],
+    "notes": "Must cite Attendance_and_Grading_Matrix.xlsx Sheet Attendance_Rules."
+  },
+  {
+    "id": "EVAL-05",
+    "category": "Course Syllabus (DOCX)",
+    "question": "Which textbook is recommended as primary textbook for CS101 Data Structures and Algorithms?",
+    "is_answerable": true,
+    "expected_document": "CS101_Data_Structures_Syllabus.docx",
+    "expected_section": "Document Body",
+    "expected_key_facts": ["Introduction to Algorithms", "Cormen", "Leiserson"],
+    "notes": "Must cite CS101_Data_Structures_Syllabus.docx."
+  },
+  {
+    "id": "EVAL-06",
+    "category": "Hostel Life (PPTX)",
+    "question": "What is the nightly campus in-time curfew for undergraduate hostel residents?",
+    "is_answerable": true,
+    "expected_document": "Campus_Facilities_and_Hostel_Guide.pptx",
+    "expected_section": "Slide 3",
+    "expected_key_facts": ["09:30 PM", "curfew", "Hostel"],
+    "notes": "Must cite Campus_Facilities_and_Hostel_Guide.pptx Slide 3."
+  },
+  {
+    "id": "EVAL-07",
+    "category": "Unanswerable / Out of Domain",
+    "question": "What is the flight reimbursement policy for students going on international summer vacations?",
+    "is_answerable": false,
+    "expected_document": null,
+    "expected_section": null,
+    "expected_key_facts": [],
+    "notes": "Expected to correctly trigger insufficient evidence refusal."
+  },
+  {
+    "id": "EVAL-08",
+    "category": "Unanswerable / Dorm Pets",
+    "question": "Can students keep pet dogs and birds inside the hostel rooms?",
+    "is_answerable": false,
+    "expected_document": null,
+    "expected_section": null,
+    "expected_key_facts": [],
+    "notes": "Policy not covered in hostel guide - should say not found."
+  },
+  {
+    "id": "EVAL-09",
+    "category": "Unanswerable / General Trivia",
+    "question": "What is the capital city of Australia and what is its total population?",
+    "is_answerable": false,
+    "expected_document": null,
+    "expected_section": null,
+    "expected_key_facts": [],
+    "notes": "Completely unrelated to college approved documents."
+  },
+  {
+    "id": "EVAL-10",
+    "category": "Re-evaluation Rules (PDF)",
+    "question": "How much is the non-refundable re-evaluation fee per theory course and within how many days must a student apply?",
+    "is_answerable": true,
+    "expected_document": "Academic_Regulations_Handbook_2024.pdf",
+    "expected_section": "Page 3",
+    "expected_key_facts": ["1,000", "14 calendar days", "re-evaluation"],
+    "notes": "Must cite Academic_Regulations_Handbook_2024.pdf Page 3."
+  }
+]

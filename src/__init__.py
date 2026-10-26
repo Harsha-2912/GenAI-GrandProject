@@ -1,0 +1,2 @@
+"""DocuSage AI - Document Intelligence RAG System package."""
+__version__ = "1.0.0"
