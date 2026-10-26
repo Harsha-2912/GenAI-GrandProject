@@ -206,33 +206,55 @@ class RAGEngine:
     def _call_local_synthesizer(self, prompt: str, context_chunks: List[DocumentChunk]) -> Tuple[str, str]:
         """
         Intelligent offline extractive synthesizer.
-        Extracts top sentences directly from retrieved chunks, groups by document source,
-        and constructs a fully grounded answer with exact citation tags.
-        Guarantees zero hallucination and works 100% offline without API keys!
+        Ranks candidate sentences by semantic keyword overlap with the user question,
+        detects absence of evidence, and constructs a grounded answer with citations.
         """
         if not context_chunks:
-            return UNANSWERABLE_PHRASE, "Local Synthesizer (Offline)"
+            return UNANSWERABLE_PHRASE, "Local Extractive Synthesizer (Offline)"
 
-        # Group extracted facts by source document
-        grouped_by_doc: Dict[str, List[Tuple[str, str]]] = {}
+        # Extract user query
+        q_match = re.search(r"User Question:\s*(.+?)(?:\n\n|$)", prompt)
+        user_q = q_match.group(1).strip() if q_match else ""
+
+        stopwords = {
+            "what", "is", "are", "the", "for", "and", "in", "to", "of", "a", "an", "on", "by",
+            "at", "with", "from", "as", "how", "much", "many", "when", "where", "which", "who",
+            "can", "do", "does", "student", "students", "college", "university", "policy"
+        }
+        q_keywords = [w.lower() for w in re.findall(r"\w+", user_q) if len(w) > 2 and w.lower() not in stopwords]
+
+        # Score and rank sentences across all retrieved chunks
+        scored_statements = []
         for chunk in context_chunks:
-            fn = chunk.filename
-            if fn not in grouped_by_doc:
-                grouped_by_doc[fn] = []
-            
-            # Extract key statements from chunk
             lines = [l.strip() for l in chunk.text.split("\n") if l.strip()]
             for line in lines:
-                if len(line) > 20 and not line.startswith("Headers:"):
-                    grouped_by_doc[fn].append((line, chunk.citation_tag))
+                if len(line) < 15 or line.startswith("Headers:"):
+                    continue
+                line_lower = line.lower()
+                kw_matches = sum(1 for kw in q_keywords if kw in line_lower)
+                scored_statements.append((kw_matches, line, chunk.citation_tag, chunk.filename))
 
-        # Build synthesized answer
+        # Sort by keyword match descending
+        scored_statements.sort(key=lambda x: x[0], reverse=True)
+
+        # If question had keywords but top candidate line did not meet required keyword density, reject as unanswerable
+        min_kw_required = 2 if len(q_keywords) >= 3 else 1
+        if q_keywords and (not scored_statements or scored_statements[0][0] < min_kw_required):
+            return UNANSWERABLE_PHRASE, "Local Extractive Synthesizer (Offline)"
+
+        # Group top matching statements by document
+        grouped_by_doc: Dict[str, List[Tuple[str, str]]] = {}
+        top_candidates = scored_statements[:5] if scored_statements[0][0] > 0 else scored_statements[:3]
+
+        for _, line, tag, fn in top_candidates:
+            if fn not in grouped_by_doc:
+                grouped_by_doc[fn] = []
+            grouped_by_doc[fn].append((line, tag))
+
         answer_parts = ["Based on the approved institutional documents:\n"]
-        for fn, statements in grouped_by_doc.items():
+        for fn, stmts in grouped_by_doc.items():
             answer_parts.append(f"**From {fn}:**")
-            # Take top 3 most informative statements per doc
-            for stmt, tag in statements[:3]:
-                # Clean prefix markers if present
+            for stmt, tag in stmts:
                 clean_stmt = re.sub(r"^[-*•]\s*", "", stmt)
                 answer_parts.append(f"• {clean_stmt} {tag}")
             answer_parts.append("")
@@ -241,3 +263,4 @@ class RAGEngine:
             "\n*Note: Synthesized using local extractive verification engine grounded in retrieved document chunks.*"
         )
         return "\n".join(answer_parts), "Local Extractive Synthesizer (Offline)"
+
