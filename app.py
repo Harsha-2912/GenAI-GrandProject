@@ -403,7 +403,7 @@ with tab_qa:
 
         clicked_query = None
         for i, sq in enumerate(sample_queries):
-            with sample_queries_col := sample_q_cols[i]:
+            with sample_q_cols[i]:
                 if st.button(sq, key=f"sq_btn_{i}", use_container_width=True):
                     clicked_query = sq
 
