@@ -234,6 +234,35 @@ rag_engine = RAGEngine(
     similarity_threshold=st.session_state.similarity_threshold
 )
 
+def index_uploaded_files(files, store: FaissVectorStore, emb_mgr: EmbeddingManager) -> int:
+    """Helper to parse, chunk, embed, and index a collection of uploaded files into the vector store."""
+    if not files:
+        return 0
+    chunker = TextChunker(chunk_size=DEFAULT_CHUNK_SIZE, chunk_overlap=DEFAULT_CHUNK_OVERLAP)
+    total_files = len(files)
+    new_chunks_count = 0
+    progress_bar = st.progress(0.0)
+    status_text = st.empty()
+
+    for i, u_file in enumerate(files):
+        status_text.text(f"Parsing and chunking: {u_file.name} ({i+1}/{total_files})...")
+        file_bytes = io.BytesIO(u_file.read())
+        sections = DocumentParser.parse_file(file_bytes, u_file.name)
+        chunks = chunker.chunk_sections(sections)
+
+        if chunks:
+            status_text.text(f"Generating embeddings for {len(chunks)} chunks in {u_file.name}...")
+            embs = emb_mgr.embed_documents([c.text for c in chunks])
+            store.add_chunks(chunks, embs)
+            new_chunks_count += len(chunks)
+
+        progress_bar.progress((i + 1) / total_files)
+
+    store.save_to_disk(INDEX_DIR)
+    status_text.empty()
+    progress_bar.empty()
+    return new_chunks_count
+
 # ---------------------------------------------------------
 # Sidebar Controls
 # ---------------------------------------------------------
@@ -284,6 +313,23 @@ with st.sidebar:
         help="Questions whose retrieved passages score below this threshold will be classified as unanswerable / insufficient evidence."
     )
     st.session_state.similarity_threshold = threshold_val
+
+    st.markdown("---")
+    st.markdown("#### 📤 **Quick Document Upload**")
+    sidebar_upload = st.file_uploader(
+        "Upload files (PDF, DOCX, PPTX, Excel, TXT):",
+        type=["pdf", "txt", "xlsx", "xls", "csv", "pptx", "docx"],
+        accept_multiple_files=True,
+        key="sidebar_doc_uploader",
+        help="Upload approved institutional documents directly into the active vector index."
+    )
+    if sidebar_upload:
+        if st.button("⚡ Index Uploaded Documents", key="sidebar_upload_btn", type="primary", use_container_width=True):
+            with st.spinner(f"Indexing {len(sidebar_upload)} uploaded document(s)..."):
+                count = index_uploaded_files(sidebar_upload, vector_store, embedding_mgr)
+                st.success(f"Indexed {len(sidebar_upload)} document(s) ({count} chunks)!")
+                time.sleep(0.5)
+                st.rerun()
 
     st.markdown("---")
     # Quick Sample Documents Loader
@@ -370,8 +416,40 @@ tab_qa, tab_index, tab_eval, tab_help = st.tabs([
 # =========================================================
 with tab_qa:
     if total_docs == 0:
-        st.warning("No documents are currently indexed in the system. Please upload files in the 'Document Index & Ingestion' tab or click '⚡ Load 5 Sample College Documents' in the sidebar!")
+        st.warning("⚠️ No documents are currently indexed in the system.")
+        st.markdown("### 📤 **Upload Approved Documents to Get Started**")
+        st.write("Upload institutional handbooks, syllabi, fee schedules, or matrices to ask questions:")
+        qa_empty_files = st.file_uploader(
+            "Upload Documents (PDF, TXT, Excel, PPTX, DOCX):",
+            type=["pdf", "txt", "xlsx", "xls", "csv", "pptx", "docx"],
+            accept_multiple_files=True,
+            key="qa_empty_uploader"
+        )
+        if qa_empty_files:
+            if st.button("⚡ Process & Index Documents", key="qa_empty_upload_btn", type="primary"):
+                with st.spinner(f"Indexing {len(qa_empty_files)} document(s)..."):
+                    count = index_uploaded_files(qa_empty_files, vector_store, embedding_mgr)
+                    st.success(f"Successfully indexed {len(qa_empty_files)} document(s) ({count} chunks)!")
+                    time.sleep(0.5)
+                    st.rerun()
+        st.info("💡 Alternatively, click **'⚡ Load 5 Sample College Documents'** in the sidebar to start immediately.")
     else:
+        # Quick upload expander for immediate addition
+        with st.expander("📤 Quick Upload / Add New Documents to Knowledge Base"):
+            qa_quick_files = st.file_uploader(
+                "Upload additional documents (PDF, TXT, Excel, PPTX, DOCX):",
+                type=["pdf", "txt", "xlsx", "xls", "csv", "pptx", "docx"],
+                accept_multiple_files=True,
+                key="qa_quick_uploader"
+            )
+            if qa_quick_files:
+                if st.button("⚡ Process & Add to Index", key="qa_quick_upload_btn", type="primary"):
+                    with st.spinner(f"Indexing {len(qa_quick_files)} document(s)..."):
+                        count = index_uploaded_files(qa_quick_files, vector_store, embedding_mgr)
+                        st.success(f"Successfully indexed {len(qa_quick_files)} document(s) ({count} chunks)!")
+                        time.sleep(0.5)
+                        st.rerun()
+
         # Document Filter Row (Advanced Requirement)
         doc_names = list(vector_store.document_registry.keys())
         c_filter, c_reset = st.columns([4, 1])
@@ -541,34 +619,11 @@ with tab_index:
     if uploaded_files:
         upload_btn = st.button("⚡ Process & Index Uploaded Documents", type="primary")
         if upload_btn:
-            chunker = TextChunker(chunk_size=DEFAULT_CHUNK_SIZE, chunk_overlap=DEFAULT_CHUNK_OVERLAP)
-            progress_bar = st.progress(0.0)
-            status_text = st.empty()
-            total_files = len(uploaded_files)
-
-            new_chunks_count = 0
-            for i, u_file in enumerate(uploaded_files):
-                status_text.text(f"Parsing and chunking: {u_file.name} ({i+1}/{total_files})...")
-                # Parse
-                file_bytes = io.BytesIO(u_file.read())
-                sections = DocumentParser.parse_file(file_bytes, u_file.name)
-                chunks = chunker.chunk_sections(sections)
-
-                if chunks:
-                    status_text.text(f"Generating embeddings for {len(chunks)} chunks in {u_file.name}...")
-                    embs = embedding_mgr.embed_documents([c.text for c in chunks])
-                    vector_store.add_chunks(chunks, embs)
-                    new_chunks_count += len(chunks)
-
-                progress_bar.progress((i + 1) / total_files)
-
-            # Persist index
-            vector_store.save_to_disk(INDEX_DIR)
-            status_text.empty()
-            progress_bar.empty()
-            st.success(f"Successfully processed {len(uploaded_files)} files ({new_chunks_count} chunks indexed)!")
-            time.sleep(0.5)
-            st.rerun()
+            with st.spinner(f"Processing and indexing {len(uploaded_files)} files..."):
+                new_chunks_count = index_uploaded_files(uploaded_files, vector_store, embedding_mgr)
+                st.success(f"Successfully processed {len(uploaded_files)} files ({new_chunks_count} chunks indexed)!")
+                time.sleep(0.5)
+                st.rerun()
 
     st.markdown("---")
     st.markdown("#### 📑 **Currently Indexed Approved Documents**")
